@@ -3,13 +3,14 @@ SAS code
 libname s5238 "/courses/d0f434e5ba27fe300/sta5238";
 
 /*keep the variables that may be used*/
+
 data full;
 set s5238.titanic_train(keep=passenger_class survived sex age siblings_and_spouses parents_and_children);
 run;
 proc means data=full;
 run;
 
-/*imputation*/
+/*do the median imputation*/
 proc stdize data=full
 out=impute_train
 method=median
@@ -20,8 +21,8 @@ proc means data=impute_train;
 var age;
 run;
 
-/*change sex into 0-1 form
-(create a new variable "male" for male=1 and female=0, and drop sex)*/
+/*change sex into 0-1 form (create a new variable "male" for male=1 and female=0, and drop sex)*/
+
 data male(drop=sex);
 set impute_train;
 if sex in ('male') then do;
@@ -36,6 +37,7 @@ proc means data=male n nmiss;
 run;
 
 /*new variable fs(family_size):add siblings_and_spouses and parents_and_children*/
+
 data fs(drop=siblings_and_spouses parents_and_children);
 set male;
 fs=siblings_and_spouses+parents_and_children;
@@ -44,11 +46,13 @@ proc means data=fs N Nmiss MAX Min;
 run;
 
 /*build model*/
+
 proc logistic data=fs plots(only)=roc;
 model survived(event="1")=passenger_class age male fs;
 run;
 
 /*Similar dealing with dataset titanic_test*/
+
 data full_test;
 set s5238.titanic_test(keep=passenger_class survived sex age siblings_and_spouses parents_and_children id);
 run;
@@ -64,6 +68,7 @@ label male='male=1,female=0';
 run;
 
 /*imputation*/
+
 proc stdize data=male_test
 out=impute
 method=median
@@ -78,6 +83,7 @@ proc means data=fs_test N Nmiss MAX Min;
 run;
 
 /*assign survive*/
+
 data titanic_t;
 set fs_test;
 decide=4.8005-1.1186*passenger_class-2.6243*male-0.0359*age-0.1788*fs;
@@ -92,6 +98,7 @@ proc print data=titanic_t;
 run;
 
 /*merge result with original dataset*/
+
 data t_result(keep=survived id);
 set titanic_t;
 run;
